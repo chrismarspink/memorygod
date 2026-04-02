@@ -1,0 +1,1 @@
+export const env={"PUBLIC_ONESIGNAL_APP_ID":"placeholder","PUBLIC_SUPABASE_ANON_KEY":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBtbnpoZW14ZGZzZ2t0cWd0YmNhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxMzY5MjIsImV4cCI6MjA5MDcxMjkyMn0.8OPbLrX4B_34Q3uIMTzscNGpcpNsNfJ6tlvJRsVlHMk","PUBLIC_SUPABASE_URL":"https://pmnzhemxdfsgktqgtbca.supabase.co"}

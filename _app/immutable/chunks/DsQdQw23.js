@@ -1,0 +1,1 @@
+import{z as f,B as u,ai as _,aj as o,k as t,G as g,a6 as i,E as l,x as d,F as p,y as m}from"./CiboXddF.js";function F(n,r){let a=null,E=t;var s;if(t){a=p;for(var e=m(document.head);e!==null&&(e.nodeType!==g||e.data!==n);)e=i(e);if(e===null)l(!1);else{var y=i(e);e.remove(),d(y)}}t||(s=document.head.appendChild(f()));try{u(()=>r(s),_|o)}finally{E&&(l(!0),d(a))}}export{F as h};
