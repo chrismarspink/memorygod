@@ -7,32 +7,38 @@
 		<meta name="description" content="과학적 망각곡선 기반 암기 앱 - 기억의 신" />
 		<link rel="icon" href="/memorygod/favicon.png" />
 		<link rel="apple-touch-icon" href="/memorygod/icons/icon-192.png" />
-		<link href="/memorygod/_app/immutable/entry/start.BJXYdX7H.js" rel="modulepreload">
-		<link href="/memorygod/_app/immutable/chunks/BE1dKEgm.js" rel="modulepreload">
+		<link href="/memorygod/_app/immutable/entry/start.ByHPHPB3.js" rel="modulepreload">
+		<link href="/memorygod/_app/immutable/chunks/BlWgLPCJ.js" rel="modulepreload">
 		<link href="/memorygod/_app/immutable/chunks/CiboXddF.js" rel="modulepreload">
-		<link href="/memorygod/_app/immutable/chunks/jqVvVs0C.js" rel="modulepreload">
-		<link href="/memorygod/_app/immutable/entry/app.Bk7aUKou.js" rel="modulepreload">
+		<link href="/memorygod/_app/immutable/chunks/D9RJA3Zu.js" rel="modulepreload">
+		<link href="/memorygod/_app/immutable/entry/app.CKEayQ8L.js" rel="modulepreload">
 		<link href="/memorygod/_app/immutable/chunks/D9pSSSMT.js" rel="modulepreload">
 		<link href="/memorygod/_app/immutable/chunks/CviyubUs.js" rel="modulepreload">
 		<link href="/memorygod/_app/immutable/chunks/C4y2AdSs.js" rel="modulepreload">
+		<link href="/memorygod/_app/env.js" rel="modulepreload">
 		
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">
 			<script>
 				{
-					__sveltekit_aafv8b = {
+					__sveltekit_15z8n6j = {
 						base: "/memorygod",
-						assets: "/memorygod"
+						assets: "/memorygod",
+						env: null
 					};
 
 					const element = document.currentScript.parentElement;
 
-					Promise.all([
-						import("/memorygod/_app/immutable/entry/start.BJXYdX7H.js"),
-						import("/memorygod/_app/immutable/entry/app.Bk7aUKou.js")
-					]).then(([kit, app]) => {
-						kit.start(app, element);
+					import("/memorygod/_app/env.js").then(({ env }) => {
+						__sveltekit_15z8n6j.env = env;
+
+						Promise.all([
+							import("/memorygod/_app/immutable/entry/start.ByHPHPB3.js"),
+							import("/memorygod/_app/immutable/entry/app.CKEayQ8L.js")
+						]).then(([kit, app]) => {
+							kit.start(app, element);
+						});
 					});
 				}
 			</script>
