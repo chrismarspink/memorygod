@@ -2,13 +2,27 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
-	import { initAuth, user, signOut } from '$lib/auth';
+	import { goto } from '$app/navigation';
+	import { initAuth, user } from '$lib/auth';
 	import '../app.css';
 
 	let { children } = $props();
+	let authReady = $state(false);
 
-	onMount(() => {
-		initAuth();
+	const publicPaths = [`${base}/auth/login`, `${base}/auth/register`];
+
+	onMount(async () => {
+		await initAuth();
+		authReady = true;
+	});
+
+	$effect(() => {
+		if (!authReady) return;
+		const path = $page.url.pathname;
+		const isPublic = publicPaths.some(p => path.startsWith(p));
+		if (!$user && !isPublic) {
+			goto(`${base}/auth/login`);
+		}
 	});
 
 	const navItems = [
@@ -25,7 +39,14 @@
 	}
 </script>
 
-{#if $user}
+{#if !authReady}
+	<div class="flex items-center justify-center h-screen bg-[var(--color-bg)]">
+		<div class="text-center">
+			<div class="text-3xl font-bold text-[var(--color-primary)] mb-4">기억의 신</div>
+			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto"></div>
+		</div>
+	</div>
+{:else if $user}
 	<!-- Desktop sidebar -->
 	<nav class="hidden md:flex fixed left-0 top-0 h-full w-16 flex-col items-center bg-[var(--color-primary)] py-4 gap-2 z-50">
 		<div class="text-white font-bold text-lg mb-4">MG</div>
