@@ -3,9 +3,14 @@
 	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
-	import { initAuth, user } from '$lib/auth';
+	import { initAuth, user, signOut } from '$lib/auth';
 	import OwlMascot from '$lib/components/OwlMascot.svelte';
 	import '../app.css';
+
+	async function handleSignOut() {
+		await signOut();
+		goto(`${base}/auth/login`);
+	}
 
 	let { children } = $props();
 	let authReady = $state(false);
@@ -50,18 +55,34 @@
 	</div>
 {:else if $user}
 	<!-- Desktop sidebar -->
-	<nav class="hidden md:flex fixed left-0 top-0 h-full w-16 flex-col items-center bg-[var(--color-primary)] py-4 gap-2 z-50">
+	<nav class="hidden md:flex fixed left-0 top-0 h-full w-16 flex-col items-center bg-[var(--color-primary)] py-4 z-50">
 		<div class="text-white font-bold text-lg mb-4">MG</div>
-		{#each navItems as item}
-			<a
-				href={item.href}
-				class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-xs transition-colors
-					{isActive(item.href, $page.url.pathname) ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}"
+		<div class="flex flex-col items-center gap-2 flex-1">
+			{#each navItems as item}
+				<a
+					href={item.href}
+					class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-xs transition-colors
+						{isActive(item.href, $page.url.pathname) ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white hover:bg-white/10'}"
+				>
+					<span class="text-lg">{item.icon}</span>
+					<span class="mt-0.5">{item.label}</span>
+				</a>
+			{/each}
+		</div>
+		<!-- Account + Logout at bottom -->
+		<div class="flex flex-col items-center gap-2 mt-auto pt-2 border-t border-white/10 w-full">
+			<div class="w-8 h-8 bg-white/20 text-white rounded-full flex items-center justify-center text-xs font-bold" title={$user?.email}>
+				{($user?.email ?? '?')[0].toUpperCase()}
+			</div>
+			<button
+				onclick={handleSignOut}
+				class="flex flex-col items-center justify-center w-12 h-12 rounded-lg text-xs text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+				title="로그아웃"
 			>
-				<span class="text-lg">{item.icon}</span>
-				<span class="mt-0.5">{item.label}</span>
-			</a>
-		{/each}
+				<span class="text-lg">🚪</span>
+				<span class="mt-0.5">로그아웃</span>
+			</button>
+		</div>
 	</nav>
 
 	<!-- Mobile bottom tabs -->
