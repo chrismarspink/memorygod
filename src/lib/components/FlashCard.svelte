@@ -36,68 +36,68 @@
 	});
 </script>
 
-<div class="w-full max-w-md mx-auto">
+<div class="w-full max-w-lg mx-auto">
 	<!-- Card with flip animation -->
 	<div class="card-perspective">
 		<button
 			onclick={onflip}
-			class="card-inner w-full min-h-[280px] cursor-pointer"
+			class="card-inner w-full min-h-[360px] md:min-h-[420px] cursor-pointer"
 			class:card-flipped={flipped}
 		>
 			<!-- Front face -->
-			<div class="card-face card-front bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center relative">
+			<div class="card-face card-front bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center text-center relative">
 				{#if domain}
-					<span class="absolute top-4 left-4 text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+					<span class="absolute top-4 left-4 text-sm bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full">
 						{domain}
 					</span>
 				{/if}
-				<div class="text-lg font-medium leading-relaxed">{front}</div>
+				<div class="text-2xl md:text-3xl font-semibold leading-relaxed">{front}</div>
 				{#if image_url}
-					<img src={image_url} alt="" class="mt-4 max-h-32 rounded-lg object-contain" />
+					<img src={image_url} alt="" class="mt-5 max-h-40 rounded-lg object-contain" />
 				{/if}
 				{#if hintLevel > 0}
-					<div class="mt-4 text-sm text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg">
+					<div class="mt-5 text-base text-amber-600 bg-amber-50 px-4 py-2 rounded-lg">
 						{getHintText()}
 					</div>
 				{/if}
-				<div class="mt-4 text-xs text-gray-400">탭하여 정답 확인</div>
+				<div class="mt-5 text-sm text-gray-400">탭하여 정답 확인</div>
 			</div>
 
 			<!-- Back face -->
-			<div class="card-face card-back bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center">
-				<div class="text-lg font-medium leading-relaxed text-[var(--color-primary)]">{back}</div>
+			<div class="card-face card-back bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center justify-center text-center">
+				<div class="text-2xl md:text-3xl font-semibold leading-relaxed text-[var(--color-primary)]">{back}</div>
 				{#if hint}
-					<div class="mt-3 text-sm text-gray-500">{hint}</div>
+					<div class="mt-4 text-base text-gray-500">{hint}</div>
 				{/if}
 			</div>
 		</button>
 	</div>
 
 	<!-- Actions -->
-	<div class="mt-4 flex gap-3">
+	<div class="mt-5 flex gap-3">
 		{#if !flipped}
 			<button
 				onclick={showHint}
-				class="flex-1 py-3 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors"
+				class="flex-1 py-3.5 bg-amber-50 text-amber-700 rounded-xl text-base font-medium hover:bg-amber-100 transition-colors"
 			>
 				힌트 ({hintLevel}/3)
 			</button>
 		{:else}
 			<button
 				onclick={() => onrate(5)}
-				class="flex-1 py-3 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-100 transition-colors"
+				class="flex-1 py-3.5 bg-emerald-50 text-emerald-700 rounded-xl text-base font-medium hover:bg-emerald-100 transition-colors"
 			>
 				✓ 알았음
 			</button>
 			<button
 				onclick={() => onrate(3)}
-				class="flex-1 py-3 bg-amber-50 text-amber-700 rounded-xl text-sm font-medium hover:bg-amber-100 transition-colors"
+				class="flex-1 py-3.5 bg-amber-50 text-amber-700 rounded-xl text-base font-medium hover:bg-amber-100 transition-colors"
 			>
 				~ 헷갈림
 			</button>
 			<button
 				onclick={() => onrate(1)}
-				class="flex-1 py-3 bg-red-50 text-red-700 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
+				class="flex-1 py-3.5 bg-red-50 text-red-700 rounded-xl text-base font-medium hover:bg-red-100 transition-colors"
 			>
 				✗ 몰랐음
 			</button>

@@ -23,7 +23,7 @@
 		const userId = $user!.id;
 		const today = new Date();
 
-		// Weekly data (last 7 days)
+		// Weekly data (last 7 days) — use range query instead of .in()
 		const weekDates: string[] = [];
 		for (let i = 6; i >= 0; i--) {
 			const d = new Date(today);
@@ -31,27 +31,34 @@
 			weekDates.push(d.toISOString().split('T')[0]);
 		}
 
+		const weekStart = weekDates[0];
+		const weekEnd = weekDates[weekDates.length - 1];
+
 		const { data: weekStats } = await supabase
 			.from('daily_stats')
 			.select('study_date, cards_studied')
 			.eq('user_id', userId)
-			.in('study_date', weekDates);
+			.gte('study_date', weekStart)
+			.lte('study_date', weekEnd);
 
-		const statsMap = new Map((weekStats ?? []).map(s => [s.study_date, s.cards_studied]));
+		const statsMap = new Map((weekStats ?? []).map((s: any) => [s.study_date, s.cards_studied]));
 		weeklyData = weekDates.map(d => ({
 			date: d,
 			count: statsMap.get(d) ?? 0
 		}));
 
 		// Streak days (last 30 days)
+		const thirtyDaysAgo = new Date(today);
+		thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
 		const { data: allStats } = await supabase
 			.from('daily_stats')
-			.select('study_date')
+			.select('study_date, cards_studied')
 			.eq('user_id', userId)
-			.order('study_date', { ascending: false })
-			.limit(30);
+			.gte('study_date', thirtyDaysAgo.toISOString().split('T')[0])
+			.order('study_date', { ascending: false });
 
-		streakDays = (allStats ?? []).map(s => s.study_date);
+		streakDays = (allStats ?? []).filter((s: any) => s.cards_studied > 0).map((s: any) => s.study_date);
 
 		// Domain mastery
 		const { data: reviews } = await supabase

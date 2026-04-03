@@ -5,7 +5,18 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
-	let sets: any[] = $state([]);
+	interface SetItem {
+		id: string;
+		title: string;
+		description: string | null;
+		card_count: number;
+		cardCount: number;
+		isShared: boolean;
+		isEnabled: boolean;
+		sharedSetId?: string;
+	}
+
+	let sets: SetItem[] = $state([]);
 	let shareCodeInput = $state('');
 	let loading = $state(true);
 	let joinError = $state('');
@@ -31,15 +42,66 @@
 			.select('*, card_sets(*, cards(count))')
 			.eq('member_id', userId);
 
-		const sharedMapped = (shared ?? []).map((s: any) => ({
-			...s.card_sets,
-			isShared: true,
-			isActive: s.is_active,
-			sharedSetId: s.id
+		const ownMapped: SetItem[] = (own ?? []).map((s: any) => ({
+			id: s.id,
+			title: s.title,
+			description: s.description,
+			card_count: s.card_count,
+			cardCount: s.cards?.[0]?.count ?? s.card_count ?? 0,
+			isShared: false,
+			isEnabled: s.is_enabled !== false,
 		}));
 
-		sets = [...(own ?? []), ...sharedMapped];
+		const sharedMapped: SetItem[] = (shared ?? []).map((s: any) => ({
+			id: s.card_sets.id,
+			title: s.card_sets.title,
+			description: s.card_sets.description,
+			card_count: s.card_sets.card_count,
+			cardCount: s.card_sets.cards?.[0]?.count ?? s.card_sets.card_count ?? 0,
+			isShared: true,
+			isEnabled: s.is_active !== false,
+			sharedSetId: s.id,
+		}));
+
+		sets = [...ownMapped, ...sharedMapped];
 		loading = false;
+	}
+
+	function enabledSets() {
+		return sets.filter(s => s.isEnabled);
+	}
+
+	function enabledCardCount() {
+		return enabledSets().reduce((a, s) => a + s.cardCount, 0);
+	}
+
+	async function toggleSet(set: SetItem, e: Event) {
+		e.preventDefault();
+		e.stopPropagation();
+
+		const newState = !set.isEnabled;
+
+		// Prevent turning off the last enabled set
+		if (!newState && enabledSets().length <= 1) {
+			alert('최소 1개 세트는 학습 중이어야 합니다');
+			return;
+		}
+
+		// Optimistic update
+		set.isEnabled = newState;
+		sets = [...sets];
+
+		if (set.isShared && set.sharedSetId) {
+			await supabase
+				.from('shared_sets')
+				.update({ is_active: newState })
+				.eq('id', set.sharedSetId);
+		} else {
+			await supabase
+				.from('card_sets')
+				.update({ is_enabled: newState })
+				.eq('id', set.id);
+		}
 	}
 
 	async function joinByCode() {
@@ -63,7 +125,8 @@
 		const { error } = await supabase.from('shared_sets').insert({
 			set_id: set.id,
 			owner_id: set.owner_id,
-			member_id: $user!.id
+			member_id: $user!.id,
+			is_active: true
 		});
 
 		if (error) {
@@ -87,6 +150,14 @@
 			+ 업로드
 		</a>
 	</div>
+
+	<!-- Summary -->
+	{#if sets.length > 0}
+		<div class="text-sm text-gray-500">
+			학습 중 <span class="font-semibold text-[var(--color-primary)]">{enabledSets().length}개</span> 세트
+			· 총 <span class="font-semibold">{enabledCardCount()}장</span>
+		</div>
+	{/if}
 
 	<!-- Join by code -->
 	<div class="bg-white rounded-xl p-4 shadow-sm">
@@ -122,23 +193,34 @@
 	{:else}
 		<div class="space-y-3">
 			{#each sets as set}
-				<a href="{base}/sets/{set.id}" class="block bg-white rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
-					<div class="flex items-center justify-between mb-1">
-						<h3 class="font-medium">{set.title}</h3>
-						<div class="flex gap-1">
-							{#if set.isShared}
-								<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">공유</span>
-							{/if}
-							{#if set.isActive}
-								<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">활성</span>
-							{/if}
-						</div>
+				<div class="bg-white rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
+					<div class="flex items-center justify-between">
+						<a href="{base}/sets/{set.id}" class="flex-1 min-w-0">
+							<div class="flex items-center gap-2 mb-1">
+								<h3 class="font-medium truncate">{set.title}</h3>
+								{#if set.isShared}
+									<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full shrink-0">공유</span>
+								{/if}
+							</div>
+							<div class="text-sm text-gray-500">
+								{set.cardCount}장
+								{#if set.description}· {set.description}{/if}
+							</div>
+						</a>
+						<!-- ON/OFF toggle -->
+						<button
+							onclick={(e) => toggleSet(set, e)}
+							class="shrink-0 ml-3 w-12 h-7 rounded-full transition-colors relative
+								{set.isEnabled ? 'bg-[var(--color-success)]' : 'bg-gray-300'}"
+							title={set.isEnabled ? '학습 ON' : '학습 OFF'}
+						>
+							<div
+								class="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform
+									{set.isEnabled ? 'translate-x-5' : 'translate-x-0.5'}"
+							></div>
+						</button>
 					</div>
-					<div class="text-sm text-gray-500">
-						{set.cards?.[0]?.count ?? set.card_count ?? 0}장
-						{#if set.description}· {set.description}{/if}
-					</div>
-				</a>
+				</div>
 			{/each}
 		</div>
 	{/if}

@@ -2,6 +2,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { signIn } from '$lib/auth';
+	import OwlMascot from '$lib/components/OwlMascot.svelte';
 
 	let email = $state('');
 	let password = $state('');
@@ -30,6 +31,9 @@
 <div class="min-h-screen flex items-center justify-center p-4 bg-[var(--color-bg)]">
 	<div class="w-full max-w-sm">
 		<div class="text-center mb-8">
+			<div class="flex justify-center mb-3">
+				<OwlMascot state="seeyou" size="xl" />
+			</div>
 			<h1 class="text-3xl font-bold text-[var(--color-primary)] mb-2">기억의 신</h1>
 			<p class="text-gray-500 text-sm">과학적 망각곡선 기반 암기 앱</p>
 		</div>

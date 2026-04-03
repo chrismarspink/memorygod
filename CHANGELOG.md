@@ -6,55 +6,87 @@
 
 ---
 
-## [1.1.0] — 2026-04-03
+## [미출시] — 개발 중
 
-### 추가
-- 공개 라이브러리 탐색 페이지 `/library` (LIB-01)
-- 세트 공개/비공개 토글 + 카테고리 설정 (LIB-02)
-- 라이브러리 세트 미리보기 — 카드 수, 영역, 설명, 복제 횟수 (LIB-03)
-- 세트 복제(포크) — 카드 전체 복사 + fork_count 자동 증가 (LIB-04)
-- 인기순/최신순 정렬 + 키워드 검색 + 카테고리 필터 (LIB-05)
-- 하단 네비게이션에 "탐색" 탭 추가
-- DB 마이그레이션 `002_library.sql` — is_public, category, fork_count, forked_from, author_name 컬럼 + 공개 RLS 정책
+### 추가 예정
+- MVP v1.0.0 전체 기능 (FEATURES.md 참고)
+- v1.1.0 라이브러리 기능 (FEATURES.md `## v1.1.0` 섹션 참고)
+- v1.2.0 세트 ON/OFF 기능 (FEATURES.md `## v1.2.0` 섹션 참고)
 
 ---
 
-## [1.0.0] — 2026-04-03 (MVP)
+## [1.2.0] — 미출시 (세트 ON/OFF)
+
+### 변경
+- 세트 활성화 방식: 1개 제한 → 다중 ON/OFF 토글로 전면 교체 (SETS-05 → SETS-07~10)
+- 학습 큐 생성: 단일 세트 → ON 상태인 모든 세트 합산으로 변경
 
 ### 추가
-- 이메일/패스워드 인증 (AUTH-01~04): 로그인·회원가입·로그아웃·세션 유지
-- 엑셀/CSV 업로드 (UPLOAD-01~04): SheetJS 기반 파싱, 컬럼 별칭 처리, 미리보기
-- 플래시카드 학습 (STUDY-01~08): SM-2 알고리즘, 플립 애니메이션, 3단계 힌트, 데스크탑 2열 레이아웃
-- 세트 관리 (SETS-01~06): 목록·상세·공유코드·참여·활성화·영역 필터
-- 홈 대시보드 (HOME-01~04): 복습 배너, 진행률+숙달도, D-day 뱃지, 미니 통계
-- 통계 (STATS-01~04): 주간 바 차트, 영역별 숙달도, 스트릭 캘린더, 진행률
-- 설정 (SETTINGS-01~06): D-day, 학습량 슬라이더, 카드 순서, 알림·수면 시간
-- OneSignal 푸시 알림 (NOTIFY-01,03): SDK 초기화, user_id 연결
-- PWA (PWA-01~03): manifest, maskable 아이콘, Service Worker 오프라인 캐시
-- DB 스키마 (DB-01~02): 6개 테이블 + RLS + increment_daily_stats RPC
+- 내 세트 / 공유받은 세트 각각 ON/OFF 토글 스위치 UI
+- 세트 목록 상단 "학습 중 N개 · 총 M장" 요약
+- 마지막 ON 세트 OFF 방지 안전장치
+
+### DB 변경
+- `card_sets` 테이블: `is_enabled` 컬럼 추가
+- `shared_sets.is_active` 컬럼: 1개 제한 의미 → 다중 허용으로 변경
+- 마이그레이션 파일: `003_set_toggle.sql`
+
+---
+
+## [1.1.0] — 미출시 (라이브러리)
+
+### 추가
+- 라이브러리 페이지: 공개 세트 목록 + 검색 + 정렬 + 도메인 필터 (LIB-01, LIB-02, LIB-09, LIB-10)
+- 세트 공개 등록 / 취소 버튼 (LIB-04, LIB-05)
+- 세트 상세 미리보기 + 가져오기 (LIB-03, LIB-08)
+- 별점 평가 1~5점, 1인 1회, 평균 표시 (LIB-06, LIB-07)
+- StarRating.svelte, LibraryCard.svelte 컴포넌트
+- 네비게이션에 라이브러리 탭 추가
+
+### DB 변경
+- `card_sets` 테이블: `is_public`, `source_set_id`, `download_count`, `author_name` 컬럼 추가
+- `library_ratings` 테이블 신규 생성
+- `increment_download_count` RPC 함수 추가
+- 마이그레이션 파일: `002_library.sql`
+
+### CLAUDE.md 변경
+- 금지 사항: "마켓플레이스(크리에이터 공개 판매)" → "마켓플레이스(크리에이터 유료 판매/결제 기반 공유)"로 범위 명확화
+
+---
+
+## [1.0.0] — 미출시 (MVP)
+
+### 추가
+- 이메일/패스워드 인증 (로그인·회원가입·로그아웃)
+- 엑셀(.xlsx) / CSV 업로드 → 플래시카드 파싱·저장
+- SM-2 알고리즘 기반 간격 반복 학습
+- 플래시카드 플립 애니메이션 (모바일 + 데스크탑 2열)
+- 3단계 힌트 시스템
+- 오늘의 학습 큐 (복습 카드 + 신규 카드)
+- 세트 공유 코드 (MG-XXXX 형식)
+- 홈 대시보드 (진행률·D-day·미니 통계)
+- 주간 통계 차트 + 스트릭 캘린더
+- 설정 (D-day·학습량·알림 시간·수면 보호)
+- OneSignal 웹 푸시 알림
+- PWA 설치 지원
+- 오프라인 학습 (Service Worker 캐시)
 - GitHub Pages 자동 배포 (GitHub Actions)
-- 샘플 엑셀 6종 (영단어, 한문, 한국사, 양자역학, 천문학, 기술사)
-
-### 기술 스택
-- Svelte 5 + SvelteKit 2 (adapter-static)
-- Tailwind CSS v4
-- Supabase (PostgreSQL + RLS + Auth)
-- vite-plugin-pwa / @vite-pwa/sveltekit
-- SheetJS (xlsx)
 
 ---
 
-<!--
+<!-- 
+새 기능이 추가될 때마다 아래 형식으로 항목을 추가한다.
+
 ## [1.1.0] — YYYY-MM-DD
 
 ### 추가
-- 기능 설명 (관련 ID)
+- 기능 설명 (관련 ID: FEATURES.md의 ID)
 
 ### 변경
-- 기존 기능 수정
+- 기존 기능 수정 내용
 
 ### 수정
-- 버그 수정
+- 버그 수정 내용
 
 ### 제거
 - 삭제된 기능

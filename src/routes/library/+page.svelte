@@ -5,6 +5,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
+	import StarRating from '$lib/components/StarRating.svelte';
+
 	interface LibSet {
 		id: string;
 		title: string;
@@ -13,8 +15,10 @@
 		category: string | null;
 		domains: string[];
 		card_count: number;
-		fork_count: number;
+		download_count: number;
 		created_at: string;
+		avg_score: number;
+		rating_count: number;
 	}
 
 	const CATEGORIES = [
@@ -43,7 +47,7 @@
 
 		let query = supabase
 			.from('card_sets')
-			.select('id, title, description, author_name, category, domains, card_count, fork_count, created_at')
+			.select('id, title, description, author_name, category, domains, card_count, download_count, created_at, library_ratings(score)')
 			.eq('is_public', true);
 
 		if (category) {
@@ -55,7 +59,7 @@
 		}
 
 		if (sort === 'popular') {
-			query = query.order('fork_count', { ascending: false });
+			query = query.order('download_count', { ascending: false });
 		} else {
 			query = query.order('created_at', { ascending: false });
 		}
@@ -63,7 +67,15 @@
 		query = query.limit(50);
 
 		const { data } = await query;
-		sets = (data ?? []) as LibSet[];
+		sets = (data ?? []).map((s: any) => {
+			const ratings = s.library_ratings ?? [];
+			return {
+				...s,
+				download_count: s.download_count ?? 0,
+				avg_score: ratings.length > 0 ? ratings.reduce((a: number, r: any) => a + r.score, 0) / ratings.length : 0,
+				rating_count: ratings.length,
+			};
+		});
 		loading = false;
 	}
 
@@ -211,40 +223,34 @@
 	{:else}
 		<div class="space-y-3">
 			{#each sets as set}
-				<div class="bg-white rounded-xl p-4 shadow-sm">
-					<div class="flex items-start justify-between gap-3">
-						<div class="flex-1 min-w-0">
-							<div class="flex items-center gap-2 mb-1">
-								<h3 class="font-medium truncate">{set.title}</h3>
-								{#if set.category}
-									<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full shrink-0">
-										{getCategoryLabel(set.category)}
-									</span>
-								{/if}
-							</div>
-							{#if set.description}
-								<p class="text-sm text-gray-500 line-clamp-2 mb-2">{set.description}</p>
-							{/if}
-							<div class="flex items-center gap-3 text-xs text-gray-400">
-								{#if set.author_name}
-									<span>{set.author_name}</span>
-								{/if}
-								<span>{set.card_count}장</span>
-								<span>복제 {set.fork_count}회</span>
-								{#if set.domains?.length}
-									<span>{set.domains.slice(0, 3).join(', ')}</span>
-								{/if}
-							</div>
-						</div>
-						<button
-							onclick={() => forkSet(set.id)}
-							disabled={forking === set.id}
-							class="shrink-0 px-4 py-2 bg-[var(--color-primary)] text-white rounded-xl text-sm font-medium hover:bg-[var(--color-primary-light)] transition-colors disabled:opacity-50"
-						>
-							{forking === set.id ? '복제중...' : '+ 내 세트로'}
-						</button>
+				<a href="{base}/library/{set.id}" class="block bg-white rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
+					<div class="flex items-center gap-2 mb-1">
+						<h3 class="font-medium truncate">{set.title}</h3>
+						{#if set.category}
+							<span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full shrink-0">
+								{getCategoryLabel(set.category)}
+							</span>
+						{/if}
 					</div>
-				</div>
+					{#if set.description}
+						<p class="text-sm text-gray-500 line-clamp-2 mb-2">{set.description}</p>
+					{/if}
+					{#if set.rating_count > 0}
+						<div class="mb-2">
+							<StarRating score={set.avg_score} count={set.rating_count} />
+						</div>
+					{/if}
+					<div class="flex items-center gap-3 text-xs text-gray-400">
+						{#if set.author_name}
+							<span>{set.author_name}</span>
+						{/if}
+						<span>{set.card_count}장</span>
+						<span>다운로드 {set.download_count}회</span>
+						{#if set.domains?.length}
+							<span>{set.domains.slice(0, 3).join(', ')}</span>
+						{/if}
+					</div>
+				</a>
 			{/each}
 		</div>
 	{/if}

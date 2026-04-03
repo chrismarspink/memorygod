@@ -4,6 +4,7 @@
 	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { initAuth, user } from '$lib/auth';
+	import OwlMascot from '$lib/components/OwlMascot.svelte';
 	import '../app.css';
 
 	let { children } = $props();
@@ -43,8 +44,8 @@
 {#if !authReady}
 	<div class="flex items-center justify-center h-screen bg-[var(--color-bg)]">
 		<div class="text-center">
-			<div class="text-3xl font-bold text-[var(--color-primary)] mb-4">기억의 신</div>
-			<div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--color-primary)] mx-auto"></div>
+			<OwlMascot state="loading" size="xl" />
+			<p class="mt-4 text-sm text-gray-400">기억을 불러오는 중...</p>
 		</div>
 	</div>
 {:else if $user}

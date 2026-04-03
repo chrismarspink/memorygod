@@ -60,11 +60,12 @@
 			isNew: false
 		}));
 
-		// Get all user's active set IDs
+		// Get all user's enabled (ON) set IDs
 		const { data: ownSets } = await supabase
 			.from('card_sets')
 			.select('id')
-			.eq('owner_id', userId);
+			.eq('owner_id', userId)
+			.neq('is_enabled', false);
 
 		const { data: sharedActive } = await supabase
 			.from('shared_sets')
