@@ -48,8 +48,16 @@
 			.select('set_id, card_sets(*, cards(count))')
 			.eq('member_id', userId);
 
-		const shared = (sharedSets ?? []).map((s: any) => ({ ...s.card_sets, isShared: true }));
-		const allSets = [...(ownSets ?? []), ...shared];
+		const shared = (sharedSets ?? []).map((s: any) => ({
+			...s.card_sets,
+			isShared: true,
+			isEnabled: s.is_active !== false
+		}));
+		const allSets = [...(ownSets ?? []).map((s: any) => ({
+			...s,
+			isShared: false,
+			isEnabled: s.is_enabled !== false
+		})), ...shared];
 
 		// Get mastered count per set
 		const { data: reviews } = await supabase
@@ -74,7 +82,8 @@
 				totalCards: total,
 				masteredCards: m?.mastered ?? 0,
 				reviewedCards: m?.reviewed ?? 0,
-				masteryPct: total > 0 && m ? Math.round((m.mastered / total) * 100) : 0
+				masteryPct: total > 0 && m ? Math.round((m.mastered / total) * 100) : 0,
+				isEnabled: s.isEnabled !== false
 			};
 		});
 
@@ -199,12 +208,26 @@
 			{:else}
 				<div class="space-y-3">
 					{#each sets as set}
-						<a href="{base}/sets/{set.id}" class="block bg-white rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
+						<a
+							href="{base}/sets/{set.id}"
+							class="block bg-white rounded-xl p-4 shadow-sm hover:shadow transition-all
+								{set.isEnabled ? '' : 'opacity-40'}"
+						>
 							<div class="flex items-center justify-between mb-2">
 								<div class="flex items-center gap-3">
-									<ProgressRing percent={set.masteryPct} size={40} strokeWidth={3} />
+									<ProgressRing
+										percent={set.masteryPct}
+										size={40}
+										strokeWidth={3}
+										color={set.isEnabled ? 'var(--color-primary)' : '#d1d5db'}
+									/>
 									<div>
-										<h3 class="font-medium">{set.title}</h3>
+										<div class="flex items-center gap-2">
+											<h3 class="font-medium">{set.title}</h3>
+											{#if !set.isEnabled}
+												<span class="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded">학습 제외</span>
+											{/if}
+										</div>
 										<div class="text-xs text-gray-400">{set.totalCards}장 · 숙달 {set.masteryPct}%</div>
 									</div>
 								</div>
@@ -215,7 +238,8 @@
 							<!-- Progress bar -->
 							<div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
 								<div
-									class="h-full bg-[var(--color-success)] rounded-full transition-all"
+									class="h-full rounded-full transition-all
+										{set.isEnabled ? 'bg-[var(--color-success)]' : 'bg-gray-300'}"
 									style="width: {set.masteryPct}%"
 								></div>
 							</div>
