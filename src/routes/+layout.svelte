@@ -28,6 +28,7 @@
 	const navItems = [
 		{ href: `${base}/`, icon: '🏠', label: '홈' },
 		{ href: `${base}/study`, icon: '📖', label: '학습' },
+		{ href: `${base}/library`, icon: '🔍', label: '탐색' },
 		{ href: `${base}/sets`, icon: '📚', label: '세트' },
 		{ href: `${base}/stats`, icon: '📊', label: '통계' },
 		{ href: `${base}/settings`, icon: '⚙️', label: '설정' }

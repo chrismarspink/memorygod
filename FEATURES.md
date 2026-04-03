@@ -109,6 +109,20 @@
 |----|------|------|-----------|
 | DB-01 | 전체 초기 스키마 + RLS | 🟢 완료 | `supabase/migrations/001_initial.sql` |
 | DB-02 | increment_daily_stats RPC | 🟢 완료 | `supabase/migrations/001_initial.sql` |
+| DB-03 | 라이브러리 스키마 (is_public, category, fork_count, forked_from) | 🟢 완료 | `supabase/migrations/002_library.sql` |
+
+---
+
+## v1.1.0 — 공개 라이브러리
+
+### LIB — 라이브러리
+| ID | 기능 | 상태 | 파일 위치 |
+|----|------|------|-----------|
+| LIB-01 | 공개 라이브러리 탐색 페이지 | 🟢 완료 | `src/routes/library/+page.svelte` |
+| LIB-02 | 세트 공개/비공개 토글 + 카테고리 설정 | 🟢 완료 | `src/routes/sets/[id]/+page.svelte` |
+| LIB-03 | 라이브러리 세트 상세 미리보기 (카드 수, 영역, 설명) | 🟢 완료 | `src/routes/library/+page.svelte` |
+| LIB-04 | 세트 복제(포크) — 카드 전체 복사 + fork_count 증가 | 🟢 완료 | `src/routes/library/+page.svelte` |
+| LIB-05 | 인기순/최신순 정렬 + 키워드 검색 + 카테고리 필터 | 🟢 완료 | `src/routes/library/+page.svelte` |
 
 ---
 
@@ -136,3 +150,4 @@
 | 파일 | 내용 | 적용 버전 |
 |------|------|-----------|
 | `001_initial.sql` | 전체 초기 스키마 (user_settings, card_sets, cards, shared_sets, review_logs, daily_stats) + RLS + increment_daily_stats RPC | v1.0.0 |
+| `002_library.sql` | card_sets에 is_public, author_name, fork_count, forked_from, category 추가 + 공개 RLS 정책 + increment_fork_count RPC | v1.1.0 |

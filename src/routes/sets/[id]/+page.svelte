@@ -6,12 +6,21 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 
+	const LIB_CATEGORIES = [
+		{ value: 'language', label: '어학' },
+		{ value: 'history', label: '역사' },
+		{ value: 'science', label: '과학' },
+		{ value: 'it', label: 'IT/기술' },
+		{ value: 'etc', label: '기타' }
+	];
+
 	let set: any = $state(null);
 	let cards: any[] = $state([]);
 	let loading = $state(true);
 	let shareCode = $state('');
 	let domainFilter = $state('');
 	let showShareModal = $state(false);
+	let publishCategory = $state('');
 
 	$effect(() => {
 		const id = $page.params.id;
@@ -72,6 +81,26 @@
 		shareCode = '';
 	}
 
+	async function togglePublic() {
+		const newPublic = !set.is_public;
+		const updates: any = { is_public: newPublic };
+		if (newPublic && publishCategory) {
+			updates.category = publishCategory;
+			updates.author_name = $user?.email?.split('@')[0] ?? '익명';
+		}
+		const { error } = await supabase
+			.from('card_sets')
+			.update(updates)
+			.eq('id', set.id);
+		if (!error) {
+			set.is_public = newPublic;
+			if (newPublic) {
+				set.category = updates.category;
+				set.author_name = updates.author_name;
+			}
+		}
+	}
+
 	async function deleteSet() {
 		if (!confirm('이 세트를 삭제하시겠습니까?')) return;
 		await supabase.from('card_sets').delete().eq('id', set.id);
@@ -122,23 +151,54 @@
 
 		<!-- Share modal -->
 		{#if showShareModal}
-			<div class="bg-white rounded-xl p-4 shadow-sm mb-4">
-				{#if set.share_code}
-					<div class="flex items-center justify-between">
-						<div>
-							<div class="text-sm text-gray-500">공유 코드</div>
+			<div class="bg-white rounded-xl p-4 shadow-sm mb-4 space-y-4">
+				<!-- Share code -->
+				<div>
+					<h4 class="text-sm font-medium text-gray-700 mb-2">공유 코드</h4>
+					{#if set.share_code}
+						<div class="flex items-center justify-between">
 							<div class="text-2xl font-bold text-[var(--color-primary)] tracking-wider">{set.share_code}</div>
+							<button onclick={disableShare} class="text-sm text-red-500">공유 중지</button>
 						</div>
-						<button onclick={disableShare} class="text-sm text-red-500">공유 중지</button>
-					</div>
-				{:else}
-					<button
-						onclick={generateShareCode}
-						class="w-full py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm font-medium"
-					>
-						공유 코드 생성
-					</button>
-				{/if}
+					{:else}
+						<button
+							onclick={generateShareCode}
+							class="w-full py-2 bg-[var(--color-primary)] text-white rounded-lg text-sm font-medium"
+						>
+							공유 코드 생성
+						</button>
+					{/if}
+				</div>
+
+				<!-- Public library toggle -->
+				<div class="border-t border-gray-100 pt-4">
+					<h4 class="text-sm font-medium text-gray-700 mb-2">공개 라이브러리</h4>
+					{#if !set.is_public}
+						<div class="space-y-2">
+							<select
+								bind:value={publishCategory}
+								class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+							>
+								<option value="">카테고리 선택</option>
+								{#each LIB_CATEGORIES as cat}
+									<option value={cat.value}>{cat.label}</option>
+								{/each}
+							</select>
+							<button
+								onclick={togglePublic}
+								disabled={!publishCategory}
+								class="w-full py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 disabled:opacity-50"
+							>
+								라이브러리에 공개
+							</button>
+						</div>
+					{:else}
+						<div class="flex items-center justify-between">
+							<span class="text-sm text-emerald-600 font-medium">공개 중</span>
+							<button onclick={togglePublic} class="text-sm text-red-500">공개 중지</button>
+						</div>
+					{/if}
+				</div>
 			</div>
 		{/if}
 
