@@ -4,6 +4,7 @@
 	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import StreakCalendar from '$lib/components/StreakCalendar.svelte';
 
 	let weeklyData: { date: string; count: number }[] = $state([]);
 	let domainStats: { domain: string; total: number; mastered: number }[] = $state([]);
@@ -155,19 +156,7 @@
 		<!-- Streak calendar -->
 		<div class="bg-white rounded-xl p-4 shadow-sm">
 			<h3 class="text-sm font-medium text-gray-700 mb-3">연속 학습</h3>
-			<div class="flex gap-1 justify-center">
-				{#each Array.from({length: 7}, (_, i) => { const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d.toISOString().split('T')[0]; }) as date}
-					<div class="flex flex-col items-center gap-1">
-						<div
-							class="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-medium
-								{streakDays.includes(date) ? 'bg-[var(--color-success)] text-white' : 'bg-gray-100 text-gray-400'}"
-						>
-							{new Date(date).getDate()}
-						</div>
-						<span class="text-[10px] text-gray-400">{dayLabel(date)}</span>
-					</div>
-				{/each}
-			</div>
+			<StreakCalendar {streakDays} />
 		</div>
 	</div>
 {/if}

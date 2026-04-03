@@ -777,3 +777,54 @@ Step 8: GitHub Pages 배포
 - 게이미피케이션 (점수 리더보드)
 - Supabase Edge Function (현 MVP 범위에서 불필요 — 클라이언트 직접 호출로 대체)
 - SSR / 서버사이드 렌더링 (GitHub Pages는 정적 빌드만 지원)
+
+
+
+## 기능 관리 시스템 (반드시 읽을 것)
+
+### 관련 파일
+```
+FEATURES.md   ← 전체 기능 목록 + 상태 관리 + 기능 추가 절차
+CHANGELOG.md  ← 버전별 변경 이력
+```
+
+### Claude Code 작업 순서
+새 기능 구현 요청이 오면 반드시 아래 순서를 따른다.
+
+```
+1. FEATURES.md 읽기
+   → "확정 기능 목록"에 있으면 구현 진행
+   → 없으면 "대기 중" 섹션에 추가 후 사용자 확인
+
+2. CLAUDE.md 금지 사항 확인
+   → 금지 항목과 충돌하면 중단하고 사용자에게 알림
+
+3. 구현
+
+4. FEATURES.md 상태 업데이트 (🟡 대기 → 🟢 완료)
+
+5. CHANGELOG.md에 항목 추가
+```
+
+### 기능 ID 체계
+```
+AUTH-##     인증 관련
+UPLOAD-##   업로드 관련  
+STUDY-##    학습 관련
+SETS-##     세트 관리
+HOME-##     홈 대시보드
+STATS-##    통계
+SETTINGS-## 설정
+NOTIFY-##   푸시 알림
+PWA-##      PWA/설치
+DB-##       DB 스키마 변경
+```
+
+### DB 마이그레이션 파일 네이밍
+```
+supabase/migrations/
+  001_initial.sql          ← 초기 스키마 (기존)
+  002_[기능명].sql         ← 두 번째 마이그레이션
+  003_[기능명].sql         ← 세 번째 마이그레이션
+```
+새 마이그레이션 추가 시 FEATURES.md의 "DB 마이그레이션 이력" 표에도 기록한다.

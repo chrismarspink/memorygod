@@ -4,10 +4,12 @@
 	import { supabase } from '$lib/supabase';
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import ProgressRing from '$lib/components/ProgressRing.svelte';
 
 	let sets: any[] = $state([]);
 	let todayStats = $state({ reviewed: 0, newCards: 0, streak: 0 });
 	let reviewCount = $state(0);
+	let ddayText = $state('');
 	let loading = $state(true);
 
 	onMount(async () => {
@@ -23,22 +25,60 @@
 		const userId = $user!.id;
 		const today = new Date().toISOString().split('T')[0];
 
-		// Load user sets
+		// Load user settings (D-day)
+		const { data: settings } = await supabase
+			.from('user_settings')
+			.select('dday_date')
+			.eq('user_id', userId)
+			.maybeSingle();
+
+		if (settings?.dday_date) {
+			const diff = Math.ceil((new Date(settings.dday_date).getTime() - Date.now()) / 86400000);
+			ddayText = diff > 0 ? `D-${diff}` : diff === 0 ? 'D-Day!' : `D+${Math.abs(diff)}`;
+		}
+
+		// Load user sets with review progress
 		const { data: ownSets } = await supabase
 			.from('card_sets')
 			.select('*, cards(count)')
 			.eq('owner_id', userId);
 
-		// Load shared sets
 		const { data: sharedSets } = await supabase
 			.from('shared_sets')
 			.select('set_id, card_sets(*, cards(count))')
 			.eq('member_id', userId);
 
 		const shared = (sharedSets ?? []).map((s: any) => ({ ...s.card_sets, isShared: true }));
-		sets = [...(ownSets ?? []), ...shared];
+		const allSets = [...(ownSets ?? []), ...shared];
 
-		// Review count for today
+		// Get mastered count per set
+		const { data: reviews } = await supabase
+			.from('review_logs')
+			.select('card_id, repetition, easiness, cards(set_id)')
+			.eq('user_id', userId);
+
+		const setMastery: Record<string, { reviewed: number; mastered: number }> = {};
+		(reviews ?? []).forEach((r: any) => {
+			const sid = r.cards?.set_id;
+			if (!sid) return;
+			if (!setMastery[sid]) setMastery[sid] = { reviewed: 0, mastered: 0 };
+			setMastery[sid].reviewed++;
+			if (r.repetition >= 3 && r.easiness >= 2.0) setMastery[sid].mastered++;
+		});
+
+		sets = allSets.map((s: any) => {
+			const total = s.cards?.[0]?.count ?? s.card_count ?? 0;
+			const m = setMastery[s.id];
+			return {
+				...s,
+				totalCards: total,
+				masteredCards: m?.mastered ?? 0,
+				reviewedCards: m?.reviewed ?? 0,
+				masteryPct: total > 0 && m ? Math.round((m.mastered / total) * 100) : 0
+			};
+		});
+
+		// Review count
 		const { count: revCount } = await supabase
 			.from('review_logs')
 			.select('*', { count: 'exact', head: true })
@@ -101,7 +141,14 @@
 		<!-- Header -->
 		<div class="flex items-center justify-between">
 			<h1 class="text-2xl font-bold text-[var(--color-primary)]">기억의 신</h1>
-			<div class="text-sm text-gray-500">{$user?.email}</div>
+			<div class="flex items-center gap-2">
+				{#if ddayText}
+					<span class="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">{ddayText}</span>
+				{/if}
+				<div class="w-8 h-8 bg-[var(--color-primary)] text-white rounded-full flex items-center justify-center text-xs font-bold">
+					{($user?.email ?? '?')[0].toUpperCase()}
+				</div>
+			</div>
 		</div>
 
 		<!-- Today's review banner -->
@@ -125,8 +172,12 @@
 				<div class="text-xs text-gray-500 mt-1">오늘 학습</div>
 			</div>
 			<div class="bg-white rounded-xl p-4 text-center shadow-sm">
-				<div class="text-2xl font-bold text-[var(--color-success)]">{sets.length}</div>
-				<div class="text-xs text-gray-500 mt-1">내 세트</div>
+				<div class="text-2xl font-bold text-[var(--color-success)]">
+					{sets.reduce((a, s) => a + s.totalCards, 0) > 0
+						? Math.round(sets.reduce((a, s) => a + s.masteredCards, 0) / sets.reduce((a, s) => a + s.totalCards, 0) * 100)
+						: 0}%
+				</div>
+				<div class="text-xs text-gray-500 mt-1">숙달도</div>
 			</div>
 			<div class="bg-white rounded-xl p-4 text-center shadow-sm">
 				<div class="text-2xl font-bold text-[var(--color-accent)]">{todayStats.streak}</div>
@@ -150,16 +201,23 @@
 					{#each sets as set}
 						<a href="{base}/sets/{set.id}" class="block bg-white rounded-xl p-4 shadow-sm hover:shadow transition-shadow">
 							<div class="flex items-center justify-between mb-2">
-								<h3 class="font-medium">{set.title}</h3>
+								<div class="flex items-center gap-3">
+									<ProgressRing percent={set.masteryPct} size={40} strokeWidth={3} />
+									<div>
+										<h3 class="font-medium">{set.title}</h3>
+										<div class="text-xs text-gray-400">{set.totalCards}장 · 숙달 {set.masteryPct}%</div>
+									</div>
+								</div>
 								{#if set.isShared}
 									<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">공유</span>
 								{/if}
 							</div>
-							<div class="text-sm text-gray-500">
-								{set.cards?.[0]?.count ?? set.card_count ?? 0}장
-								{#if set.domains?.length}
-									· {set.domains.join(', ')}
-								{/if}
+							<!-- Progress bar -->
+							<div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+								<div
+									class="h-full bg-[var(--color-success)] rounded-full transition-all"
+									style="width: {set.masteryPct}%"
+								></div>
 							</div>
 						</a>
 					{/each}
