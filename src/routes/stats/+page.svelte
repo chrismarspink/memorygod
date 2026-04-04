@@ -78,13 +78,14 @@
 		streakDays = (allStats ?? []).filter((s: any) => s.cards_studied > 0).map((s: any) => s.study_date);
 
 		// Review logs — fetch without join first to avoid RLS issues
-		const { data: reviews, error: revErr } = await supabase
+		const { data: reviews, error: revErr, count: revCount } = await supabase
 			.from('review_logs')
-			.select('card_id, easiness, repetition')
+			.select('card_id, easiness, repetition', { count: 'exact' })
 			.eq('user_id', userId);
 
+		debugInfo = `review_logs: ${revCount ?? 0}건 | daily_stats 이번주: ${weekStats?.length ?? 0}건`;
 		if (revErr) {
-			debugInfo += ` | review_logs 오류: ${revErr.message}`;
+			debugInfo += ` | 오류: ${revErr.message}`;
 		}
 
 		totalCards = (reviews ?? []).length;
