@@ -12,8 +12,21 @@
 	let totalCards = $state(0);
 	let masteredCards = $state(0);
 	let loading = $state(true);
+	let hasData = $state(false);
+	let debugInfo = $state('');
 
 	onMount(async () => {
+		// Wait for auth to be ready
+		const waitForUser = () => new Promise<void>((resolve) => {
+			if ($user) { resolve(); return; }
+			const unsub = user.subscribe(u => {
+				if (u) { unsub(); resolve(); }
+			});
+			setTimeout(() => { unsub(); resolve(); }, 3000);
+		});
+
+		await waitForUser();
+
 		if (!$user) { goto(`${base}/auth/login`); return; }
 		await loadStats();
 	});
@@ -22,8 +35,9 @@
 		loading = true;
 		const userId = $user!.id;
 		const today = new Date();
+		const todayStr = today.toISOString().split('T')[0];
 
-		// Weekly data (last 7 days) — use range query instead of .in()
+		// Weekly data (last 7 days)
 		const weekDates: string[] = [];
 		for (let i = 6; i >= 0; i--) {
 			const d = new Date(today);
@@ -32,14 +46,17 @@
 		}
 
 		const weekStart = weekDates[0];
-		const weekEnd = weekDates[weekDates.length - 1];
 
-		const { data: weekStats } = await supabase
+		const { data: weekStats, error: weekErr } = await supabase
 			.from('daily_stats')
 			.select('study_date, cards_studied')
 			.eq('user_id', userId)
 			.gte('study_date', weekStart)
-			.lte('study_date', weekEnd);
+			.lte('study_date', todayStr);
+
+		if (weekErr) {
+			debugInfo = `daily_stats 오류: ${weekErr.message}`;
+		}
 
 		const statsMap = new Map((weekStats ?? []).map((s: any) => [s.study_date, s.cards_studied]));
 		weeklyData = weekDates.map(d => ({
@@ -60,29 +77,46 @@
 
 		streakDays = (allStats ?? []).filter((s: any) => s.cards_studied > 0).map((s: any) => s.study_date);
 
-		// Domain mastery
-		const { data: reviews } = await supabase
+		// Review logs — fetch without join first to avoid RLS issues
+		const { data: reviews, error: revErr } = await supabase
 			.from('review_logs')
-			.select('card_id, easiness, repetition, cards(domain)')
+			.select('card_id, easiness, repetition')
 			.eq('user_id', userId);
 
-		const domainMap = new Map<string, { total: number; mastered: number }>();
-		(reviews ?? []).forEach((r: any) => {
-			const domain = r.cards?.domain || '미분류';
-			if (!domainMap.has(domain)) domainMap.set(domain, { total: 0, mastered: 0 });
-			const d = domainMap.get(domain)!;
-			d.total++;
-			if (r.repetition >= 3 && r.easiness >= 2.0) d.mastered++;
-		});
-
-		domainStats = [...domainMap.entries()].map(([domain, stats]) => ({
-			domain,
-			...stats
-		}));
+		if (revErr) {
+			debugInfo += ` | review_logs 오류: ${revErr.message}`;
+		}
 
 		totalCards = (reviews ?? []).length;
 		masteredCards = (reviews ?? []).filter((r: any) => r.repetition >= 3 && r.easiness >= 2.0).length;
 
+		// Get domain info from cards separately
+		if (reviews && reviews.length > 0) {
+			const cardIds = reviews.map((r: any) => r.card_id);
+			// Batch fetch card domains (max 1000)
+			const { data: cards } = await supabase
+				.from('cards')
+				.select('id, domain')
+				.in('id', cardIds.slice(0, 1000));
+
+			const cardDomainMap = new Map((cards ?? []).map((c: any) => [c.id, c.domain || '미분류']));
+
+			const domainMap = new Map<string, { total: number; mastered: number }>();
+			reviews.forEach((r: any) => {
+				const domain = cardDomainMap.get(r.card_id) || '미분류';
+				if (!domainMap.has(domain)) domainMap.set(domain, { total: 0, mastered: 0 });
+				const d = domainMap.get(domain)!;
+				d.total++;
+				if (r.repetition >= 3 && r.easiness >= 2.0) d.mastered++;
+			});
+
+			domainStats = [...domainMap.entries()].map(([domain, stats]) => ({
+				domain,
+				...stats
+			}));
+		}
+
+		hasData = totalCards > 0 || weeklyData.some(d => d.count > 0);
 		loading = false;
 	}
 
@@ -108,7 +142,22 @@
 	<div class="max-w-2xl mx-auto p-4 space-y-6">
 		<h1 class="text-xl font-bold">학습 통계</h1>
 
-		<!-- Overall -->
+		{#if debugInfo}
+			<div class="text-xs text-red-500 bg-red-50 p-2 rounded-lg">{debugInfo}</div>
+		{/if}
+
+		{#if !hasData}
+			<div class="bg-white rounded-xl p-8 text-center shadow-sm space-y-3">
+				<div class="text-4xl">📊</div>
+				<h2 class="text-lg font-semibold text-gray-700">아직 학습 데이터가 없습니다</h2>
+				<p class="text-sm text-gray-400">카드를 학습하면 여기에 통계가 표시됩니다</p>
+				<a href="{base}/study" class="inline-block mt-2 px-6 py-2 bg-[var(--color-primary)] text-white rounded-xl text-sm font-medium">
+					학습 시작하기
+				</a>
+			</div>
+		{/if}
+
+		<!-- Overall (always show) -->
 		<div class="grid grid-cols-2 gap-3">
 			<div class="bg-white rounded-xl p-4 shadow-sm text-center">
 				<div class="text-2xl font-bold text-[var(--color-primary)]">{totalCards}</div>
@@ -122,7 +171,7 @@
 			</div>
 		</div>
 
-		<!-- Weekly chart -->
+		<!-- Weekly chart (always show) -->
 		<div class="bg-white rounded-xl p-4 shadow-sm">
 			<h3 class="text-sm font-medium text-gray-700 mb-4">주간 학습량</h3>
 			<div class="flex items-end gap-2 h-32">
@@ -130,7 +179,8 @@
 					<div class="flex-1 flex flex-col items-center">
 						<div class="text-xs text-gray-500 mb-1">{day.count}</div>
 						<div
-							class="w-full rounded-t-lg bg-[var(--color-primary)] transition-all min-h-[4px]"
+							class="w-full rounded-t-lg transition-all min-h-[4px]
+								{day.count > 0 ? 'bg-[var(--color-primary)]' : 'bg-gray-200'}"
 							style="height: {day.count > 0 ? (day.count / maxCount()) * 100 : 4}%"
 						></div>
 						<div class="text-xs text-gray-400 mt-1">{dayLabel(day.date)}</div>
@@ -160,7 +210,7 @@
 			</div>
 		{/if}
 
-		<!-- Streak calendar -->
+		<!-- Streak calendar (always show) -->
 		<div class="bg-white rounded-xl p-4 shadow-sm">
 			<h3 class="text-sm font-medium text-gray-700 mb-3">연속 학습</h3>
 			<StreakCalendar {streakDays} />
