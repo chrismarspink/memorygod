@@ -119,12 +119,14 @@
 	}
 
 	let saveError = $state('');
+	let saveLog = $state('대기중');
 
 	async function handleRate(score: Score) {
 		const card = queue[currentIndex];
 		const userId = $user!.id;
 		const today = new Date().toISOString().split('T')[0];
 		saveError = '';
+		saveLog = `저장중... card=${card.id.slice(0,8)} score=${score}`;
 
 		// Get existing state
 		const { data: existing } = await supabase
@@ -158,6 +160,7 @@
 			.upsert(reviewData, { onConflict: 'card_id,user_id' });
 
 		if (upsertErr) {
+			saveLog = `upsert 실패: ${upsertErr.message} (code: ${upsertErr.code})`;
 			saveError = `저장 오류: ${upsertErr.message}`;
 			// Fallback: try update if already exists
 			if (existing) {
@@ -193,6 +196,12 @@
 
 		if (rpcErr) {
 			saveError += ` | daily_stats 오류: ${rpcErr.message}`;
+		}
+
+		if (!saveError) {
+			saveLog = `저장 완료! card=${card.id.slice(0,8)} score=${score} interval=${next.interval}d`;
+		} else {
+			saveLog = saveError;
 		}
 
 		// Track session
@@ -268,12 +277,11 @@
 	</div>
 {:else}
 	<div class="flex flex-col md:flex-row md:gap-8 md:max-w-5xl md:mx-auto p-4 min-h-screen">
-		<!-- Save error -->
-		{#if saveError}
-			<div class="w-full max-w-md mx-auto mb-2 text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
-				{saveError}
-			</div>
-		{/if}
+		<!-- Debug log (항상 표시) -->
+		<div class="w-full max-w-md mx-auto mb-2 text-xs p-2 rounded-lg border
+			{saveError ? 'text-red-600 bg-red-50 border-red-200' : 'text-blue-600 bg-blue-50 border-blue-200'}">
+			[SAVE] {saveLog}
+		</div>
 		<!-- Card area -->
 		<div class="md:w-1/2 flex flex-col items-center justify-center">
 			<!-- Progress bar -->
