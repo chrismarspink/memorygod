@@ -118,10 +118,13 @@
 		loading = false;
 	}
 
+	let saveError = $state('');
+
 	async function handleRate(score: Score) {
 		const card = queue[currentIndex];
 		const userId = $user!.id;
 		const today = new Date().toISOString().split('T')[0];
+		saveError = '';
 
 		// Get existing state
 		const { data: existing } = await supabase
@@ -138,8 +141,7 @@
 		};
 
 		const next = calcSM2(prev, score);
-
-		await supabase.from('review_logs').upsert({
+		const reviewData = {
 			card_id: card.id,
 			user_id: userId,
 			result: score,
@@ -148,14 +150,50 @@
 			repetition: next.repetition,
 			next_review_at: nextReviewDate(next.interval),
 			reviewed_at: new Date().toISOString()
-		}, { onConflict: 'card_id,user_id' });
+		};
+
+		// Try upsert, fallback to update if exists
+		const { error: upsertErr } = await supabase
+			.from('review_logs')
+			.upsert(reviewData, { onConflict: 'card_id,user_id' });
+
+		if (upsertErr) {
+			saveError = `저장 오류: ${upsertErr.message}`;
+			// Fallback: try update if already exists
+			if (existing) {
+				const { error: updateErr } = await supabase
+					.from('review_logs')
+					.update(reviewData)
+					.eq('card_id', card.id)
+					.eq('user_id', userId);
+				if (updateErr) {
+					saveError += ` | 업데이트도 실패: ${updateErr.message}`;
+				} else {
+					saveError = '';
+				}
+			} else {
+				// Try plain insert
+				const { error: insertErr } = await supabase
+					.from('review_logs')
+					.insert(reviewData);
+				if (insertErr) {
+					saveError += ` | insert도 실패: ${insertErr.message}`;
+				} else {
+					saveError = '';
+				}
+			}
+		}
 
 		// Update daily stats
-		await supabase.rpc('increment_daily_stats', {
+		const { error: rpcErr } = await supabase.rpc('increment_daily_stats', {
 			p_user_id: userId,
 			p_date: today,
 			p_is_new: card.isNew
 		});
+
+		if (rpcErr) {
+			saveError += ` | daily_stats 오류: ${rpcErr.message}`;
+		}
 
 		// Track session
 		sessionResults.total++;
@@ -230,6 +268,12 @@
 	</div>
 {:else}
 	<div class="flex flex-col md:flex-row md:gap-8 md:max-w-5xl md:mx-auto p-4 min-h-screen">
+		<!-- Save error -->
+		{#if saveError}
+			<div class="w-full max-w-md mx-auto mb-2 text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+				{saveError}
+			</div>
+		{/if}
 		<!-- Card area -->
 		<div class="md:w-1/2 flex flex-col items-center justify-center">
 			<!-- Progress bar -->
