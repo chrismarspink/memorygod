@@ -143,9 +143,10 @@
 	<div class="max-w-2xl mx-auto p-4 space-y-6">
 		<h1 class="text-xl font-bold">학습 통계</h1>
 
-		{#if debugInfo}
-			<div class="text-xs text-red-500 bg-red-50 p-2 rounded-lg">{debugInfo}</div>
-		{/if}
+		<!-- 디버그 (항상 표시) -->
+		<div class="text-xs text-orange-600 bg-orange-50 p-2 rounded-lg border border-orange-200">
+			[DEBUG] {debugInfo || '데이터 로드 완료'} | user: {$user?.id?.slice(0,8) ?? 'null'}
+		</div>
 
 		{#if !hasData}
 			<div class="bg-white rounded-xl p-8 text-center shadow-sm space-y-3">
